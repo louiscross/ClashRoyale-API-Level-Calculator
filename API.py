@@ -66,13 +66,18 @@ class Main:
     
     # function to get all of the cards in your account, formatting them to cover name, card level, amount of cards and the card max level. This will be applied to object class and listed in card_data
     def getCards(self,cards,card_data):
-            
+            # The API returns per-rarity level caps in `maxLevel`. To normalize into a single
+            # "card level" scale (so our tables work), anchor the scale to the highest cap
+            # seen in the collection (typically the common rarity cap).
+            base_max_level = max((c.get('maxLevel', 0) for c in cards), default=0) or 16
+
             for card in cards:
                 card_name = card['name']
-                card_level = 14 - (card['maxLevel'] - card['level'])
                 card_max_level = card['maxLevel']
+                # Normalize to the base scale.
+                card_level = base_max_level - (card_max_level - card['level'])
                 card_count = card['count']
-                card = Card(card_name, card_level,card_max_level,card_count)
+                card = Card(card_name, card_level, card_max_level, card_count)
                 card_data.append(card)
             return card_data
     
@@ -163,47 +168,63 @@ class Main:
             upgradeTable = self.upgrade_table(upgradeTable)
             upgradeTableExp = self.upgrade_table_exp(upgradeTableExp)
             cardRequiredTable = self.card_required_table(cardRequiredTable)
-            DesiredLevel = input("\nplease enter desired level, must be above your current level and below 51: ")
+            max_king_level = expTable[-1][0] if expTable else 90
+            DesiredLevel = input(f"\nplease enter desired level, must be above your current level and below {max_king_level + 1}: ")
             try:
                 DesiredLevel = int(DesiredLevel)
             except ValueError:
                 print("You did not enter an integer, please try again")
-                main.run()
+                return self.run()
 
-            if DesiredLevel > 50:
-                print("Value is above 50 ( the highest level), please try again")
-                main.run()
+            if DesiredLevel > max_king_level:
+                print(f"Value is above {max_king_level} (the highest level), please try again")
+                return self.run()
 
             if DesiredLevel < account.explevel:
                 print("value is lower than your current level, please try again:\n")
-                main.run()
+                return self.run()
             
             # main logic
             card = sorted(card_data, key=lambda x: x.level, reverse=False)
+            # Unified max card level (top of the normalized scale).
+            max_card_level = 16
+
+            def rarity_index_from_max_level(max_level):
+                # Post-update mapping (Level 16):
+                # Common=16, Rare=14, Epic=11, Legendary=8, Champion=6
+                if max_level == 16:
+                    return 1
+                if max_level == 14:
+                    return 2
+                if max_level == 11:
+                    return 3
+                if max_level == 8:
+                    return 4
+                if max_level == 6:
+                    return 5
+                # Legacy mapping fallback (Level 14/15 era):
+                if max_level == 14:
+                    return 1
+                if max_level == 12:
+                    return 2
+                if max_level == 9:
+                    return 3
+                if max_level == 6:
+                    return 4
+                if max_level == 4:
+                    return 5
+                return 1
+
             while account.explevel != DesiredLevel:
                 if not card:
                     print("-------\n\nnot enough cards to reach desired level.\n\nThe maximum level / exp you can achieve is:\nLevel: " + str(account.explevel) + "\nExperience: " + str(account.exppoints) + " / " + str(expTable[account.explevel-1][1]) + "\nCosting: " + f'{int(account.gold * -1):,}' + " gold\n\n--------")
                     return
                 print("------")
                 print(card[0])
-                #These if statements are determining the quality of the card.
-                if card[0].maxLevel == 14:
-                    print("Common")
-                    itemRarityIndex = 1
-                if card[0].maxLevel == 12:
-                    print("Rare")
-                    itemRarityIndex = 2
-                if card[0].maxLevel == 9:
-                    print("Epic")
-                    itemRarityIndex = 3
-                if card[0].maxLevel == 6:
-                    print("Legendary")
-                    itemRarityIndex = 4
-                if card[0].maxLevel == 4:
-                    print("Champion")
-                    itemRarityIndex = 5
+                # Determine rarity column (for card requirements table).
+                itemRarityIndex = rarity_index_from_max_level(card[0].maxLevel)
                 
-                if card[0].level == 14:
+                if card[0].level >= max_card_level:
                     print( str(card[0].name) + " is removed as level is max\n" )
                     newcardlist.append(card[0])
                     card_data.remove(card[0])
@@ -224,7 +245,7 @@ class Main:
                     card = sorted(card_data, key=lambda x: x.level, reverse=False)
                     continue
                 if card[0].count < Main._to_int(cardRequiredTable[card[0].level][itemRarityIndex]):
-                    print( str(card[0].name) + " is removed as not enough cards to upgrade:\n" + str(card[0].count) + "/" + str(cardRequiredTable[card[0].level-1][itemRarityIndex]))
+                    print( str(card[0].name) + " is removed as not enough cards to upgrade:\n" + str(card[0].count) + "/" + str(cardRequiredTable[card[0].level][itemRarityIndex]))
                     target = card_data.index(card[0])
                     newcardlist.append(card_data[target])
                     card_data.remove(card[0])
@@ -235,37 +256,17 @@ class Main:
                 # if we have enough cards to upgrade then we do. We then add and subtract the neccessary information so our while loop can be continuously updated
                 else: 
 
-
-                    if card[0].level == 9 and card[0].maxLevel == 6:
-                        card[0].count = int(card[0].count) - Main._to_int(cardRequiredTable[card[0].level][itemRarityIndex])
-                        # next level after upgrade (legendary special case from 9->10 equivalent)
-                        card[0].level = int(card[0].level) + 1
-                        # Use next level row (card[0].level now reflects next level)
-                        print("Gold to upgrade: " + str(Main._to_int(upgradeTable[card[0].level-1][1]) - 3000))
-                        print("Experience from upgrade: " + str(Main._to_int(upgradeTableExp[card[0].level-1][1]) - 150))
-                        account.gold = account.gold - Main._to_int(upgradeTable[card[0].level-1][1]) - 3000
-                        account.exppoints = account.exppoints + Main._to_int(upgradeTableExp[card[0].level-1][1]) - 150
-                        print("has been upgraded to : " + str(card[0]))
-                        card_data = [c if c.name != card[0].name else card[0] for c in card_data]
-                        # update the card list that is sorted by level
-                        card = sorted(card_data, key=lambda x: x.level, reverse=False)
-                        
-                        ##print(expTable[account.explevel][1])
-                        ##print(account.exppoints)
-                        if account.exppoints >= int(expTable[account.explevel-1][1]):
-                            account.exppoints = account.exppoints - int(expTable[account.explevel-1][1])
-                            account.explevel = account.explevel + 1
-                        continue
-
                     #print(upgradeTable[card[0].level-1][1] )
                     card[0].count = int(card[0].count) - Main._to_int(cardRequiredTable[card[0].level][itemRarityIndex])
                     # increment level first
                     card[0].level = int(card[0].level) + 1
                     # Use next level row for costs/exp (index card.level-1)
-                    print("Gold to upgrade: " + str(Main._to_int(upgradeTable[card[0].level-1][1])))
-                    print("Experience from upgrade: " + str(Main._to_int(upgradeTableExp[card[0].level-1][1])))
-                    account.gold = account.gold - Main._to_int(upgradeTable[card[0].level-1][1])
-                    account.exppoints = account.exppoints + Main._to_int(upgradeTableExp[card[0].level-1][1])
+                    gold_cost = Main._to_int(upgradeTable[card[0].level-1][1]) if (card[0].level - 1) < len(upgradeTable) else 0
+                    exp_gain = Main._to_int(upgradeTableExp[card[0].level-1][1]) if (card[0].level - 1) < len(upgradeTableExp) else 0
+                    print("Gold to upgrade: " + str(gold_cost))
+                    print("Experience from upgrade: " + str(exp_gain))
+                    account.gold = account.gold - gold_cost
+                    account.exppoints = account.exppoints + exp_gain
                     print("has been upgraded to: " + str(card[0]))
                     card_data = [c if c.name != card[0].name else card[0] for c in card_data]
                     # update the card list that is sorted by level
@@ -274,8 +275,9 @@ class Main:
                     
                 #print(expTable[account.explevel][1])
                 #print(account.exppoints)
-                if account.exppoints >= int(expTable[account.explevel-1][1]):
-                    account.exppoints = account.exppoints - int(expTable[account.explevel-1][1])
+                exp_to_next = Main._to_int(expTable[account.explevel-1][1])
+                if exp_to_next > 0 and account.exppoints >= exp_to_next:
+                    account.exppoints = account.exppoints - exp_to_next
                     account.explevel = account.explevel + 1
 
                     print("--------\n\nYou have reached the requested leve!.\n\nYour new level is:\nLevel: " + str(account.explevel) + "\nExperience: " + str(account.exppoints) + " / " + str(expTable[account.explevel-1][1]) + "\nCosting: " + f'{int(account.gold * -1):,}' + " gold\n\n--------")
@@ -305,4 +307,3 @@ if __name__ == '__main__':
         main.run()
     except KeyboardInterrupt:
         print("\nExiting...")
-
