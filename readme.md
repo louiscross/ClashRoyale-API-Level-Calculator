@@ -1,10 +1,13 @@
 
-# ClashRoyale API Level Up Calculator
+# Clash Royale Level 16 Progression Calculator
 
-This is a calculator which allows you to calculate the gold required to reach a desired level relative to the available cards in your account.
-This program is build on [Python 3.9](https://www.python.org/downloads/release/python-390/) and uses the [Clash Royale API](https://developer.clashroyale.com/#/).
+This tool uses the official Clash Royale API to simulate card upgrades from your real collection and estimate how much gold and XP you need to reach your next King Level (or a target level). It also shows your maximum achievable King Level with your current cards and optional Wild Cards, plus an upgrade path breakdown.
 
-https://github.com/user-attachments/assets/2c9e87ea-1a88-456d-b4a6-6f4e3910c7d7
+Built with Python 3.9 and the Clash Royale API:
+
+Python 3.9: https://www.python.org/downloads/release/python-390/
+Clash Royale API: https://developer.clashroyale.com/#/
+<img width="1087" height="741" alt="image" src="https://github.com/user-attachments/assets/e50c339d-390c-4a37-a5db-ac0017e7089d" />
 
 
 
@@ -20,7 +23,7 @@ on the command line.
 
 - Then run ClashRoyaleUI.py to login
 
-<img width="1169" height="502" alt="image" src="https://github.com/user-attachments/assets/64c6085d-e4c0-4f81-8371-a3ecf934ca55" />
+<img width="1067" height="378" alt="image" src="https://github.com/user-attachments/assets/9b55ea02-f277-4a64-9005-cb0f5849ac66" />
 
 
 apart from this, there are two pieces of data you need to find in order to use the tool fully: 
@@ -28,6 +31,7 @@ apart from this, there are two pieces of data you need to find in order to use t
 - The first is a valid token from your [Clash Royale developer account](https://developer.clashroyale.com/#/).
   
 If you do not have an account create one for free, and once created follow through to [your account](https://developer.clashroyale.com/#/account) and create a key.
+( use https://api.ipify.org/ to find ip to whitelist )
 
 - The second is your Clash Royale Player tag
 
@@ -49,13 +53,12 @@ Unfortunately the API only provides cards and card amounts as well as basic acco
 The tool does not require you to make use of the magic items function, as forcing this would be annoying to those who want to save specific items. however if used it will aim to make the most efficient choices when consuming.
 
 By default the tool aims to show you the maximum possible level of your account given its current state, however you can also use this to check the cost needed for individual levels
+<img width="249" height="95" alt="image" src="https://github.com/user-attachments/assets/7689e0d6-0ff3-43f1-8fce-248129eb6419" />
 
-<img width="322" height="69" alt="image" src="https://github.com/user-attachments/assets/33f8314d-b589-402e-b7bd-8ca5592cea74" />
 
 By using your real gold amount you will find out your maximum possible level given the amount of cards your account has, however you can choose to use an arbitrary high coin value to see what level you could reach given 
 
-<img width="1143" height="466" alt="image" src="https://github.com/user-attachments/assets/d530e0bd-fb4b-44c9-87f7-b3d6b62d4b57" />
-<img width="1146" height="503" alt="image" src="https://github.com/user-attachments/assets/c6bd15ec-783c-4499-9b68-c254e618ca07" />
+<img width="745" height="504" alt="image" src="https://github.com/user-attachments/assets/3897d5a8-63b2-4c39-84e4-901f60be8244" />
 
 
 
@@ -65,6 +68,7 @@ Why did i make this? I have been playing the game for abit of time with friends 
 
 
    
+
 
 
 
